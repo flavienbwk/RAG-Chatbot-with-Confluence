@@ -1,44 +1,60 @@
-import sys
+import os
 import logging
 import shutil
+import time
+from langchain_chroma import Chroma
 
-sys.path.append('../')
-from config import (CONFLUENCE_SPACE_NAME, CONFLUENCE_SPACE_KEY,
-                    CONFLUENCE_USERNAME, CONFLUENCE_API_KEY, PERSIST_DIRECTORY)
+from config import (
+    CONFLUENCE_SPACE_NAME,
+    CONFLUENCE_SPACE_KEY,
+    CONFLUENCE_USERNAME,
+    CONFLUENCE_API_KEY,
+    PERSIST_DIRECTORY,
+)
 
-from langchain.document_loaders import ConfluenceLoader
+from langchain_community.document_loaders import ConfluenceLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.text_splitter import MarkdownHeaderTextSplitter
 
-class DataLoader():
+
+class DataLoader:
     """Create, load, save the DB using the confluence Loader"""
+
     def __init__(
         self,
         confluence_url=CONFLUENCE_SPACE_NAME,
         username=CONFLUENCE_USERNAME,
         api_key=CONFLUENCE_API_KEY,
-        space_key=CONFLUENCE_SPACE_KEY,
-        persist_directory=PERSIST_DIRECTORY
+        persist_directory=PERSIST_DIRECTORY,
     ):
 
         self.confluence_url = confluence_url
         self.username = username
         self.api_key = api_key
-        self.space_key = space_key
         self.persist_directory = persist_directory
+        try:
+            # create persist directory recursively
+            os.makedirs(self.persist_directory, exist_ok=True)
+        except Exception as e:
+            logging.warning("%s", e)
 
     def load_from_confluence_loader(self):
         """Load HTML files from Confluence"""
         loader = ConfluenceLoader(
             url=self.confluence_url,
-            username=self.username,
-            api_key=self.api_key
-        )
-
-        docs = loader.load(
-            space_key=self.space_key,
+            token=self.api_key,
+            cloud=False,
+            space_key=CONFLUENCE_SPACE_KEY,
+            # page_ids=["XXXXX", "XXXXX"],  # single pages (go to page settings then "Page info" and copy the page id in the URL)
+            limit=50,
+            max_pages=1000,
+            min_retry_seconds=2,
+            max_retry_seconds=10,
+            include_comments=True,
             # include_attachments=True,
-            )
+        )
+        docs = loader.load()
+        print("Number of documents retrieved:", len(docs))
         return docs
 
     def split_docs(self, docs):
@@ -49,7 +65,9 @@ class DataLoader():
             ("###", "Sous-titre 2"),
         ]
 
-        markdown_splitter = MarkdownHeaderTextSplitter(headers_to_split_on=headers_to_split_on)
+        markdown_splitter = MarkdownHeaderTextSplitter(
+            headers_to_split_on=headers_to_split_on
+        )
 
         # Split based on markdown and add original metadata
         md_docs = []
@@ -64,7 +82,7 @@ class DataLoader():
         splitter = RecursiveCharacterTextSplitter(
             chunk_size=512,
             chunk_overlap=20,
-            separators=["\n\n", "\n", "(?<=\. )", " ", ""]
+            separators=["\n\n", "\n", "(?<=\. )", " ", ""],
         )
 
         splitted_docs = splitter.split_documents(md_docs)
@@ -72,17 +90,18 @@ class DataLoader():
 
     def save_to_db(self, splitted_docs, embeddings):
         """Save chunks to Chroma DB"""
-        from langchain.vectorstores import Chroma
-        db = Chroma.from_documents(splitted_docs, embeddings, persist_directory=self.persist_directory)
-        db.persist()
+        for i, sub_splitted_doc in enumerate(splitted_docs):
+            print(f"Saving paragraph to DB: {i+1}/{len(splitted_docs)}")
+            time.sleep(0.05)  # rate-limiting API calls to OpenAI
+            db = Chroma.from_documents(
+                [sub_splitted_doc], embeddings, persist_directory=self.persist_directory
+            )
         return db
 
     def load_from_db(self, embeddings):
         """Loader chunks to Chroma DB"""
-        from langchain.vectorstores import Chroma
         db = Chroma(
-            persist_directory=self.persist_directory,
-            embedding_function=embeddings
+            persist_directory=self.persist_directory, embedding_function=embeddings
         )
         return db
 

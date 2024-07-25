@@ -1,11 +1,11 @@
-import sys
 import load_db
 import collections
-from langchain.llms import OpenAI
+from langchain_openai import ChatOpenAI
 from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
-from langchain.embeddings import OpenAIEmbeddings
+from langchain_openai import OpenAIEmbeddings
 
+from config import (MODEL_TYPE_INFERENCE, MODEL_TYPE_EMBEDDING)
 
 class HelpDesk():
     """Create the necessary objects to create a QARetrieval chain"""
@@ -20,7 +20,9 @@ class HelpDesk():
         if self.new_db:
             self.db = load_db.DataLoader().set_db(self.embeddings)
         else:
+            print("Loading cached DB...")
             self.db = load_db.DataLoader().get_db(self.embeddings)
+            print("Loaded.")
 
         self.retriever = self.db.as_retriever()
         self.retrieval_qa_chain = self.get_retrieval_qa()
@@ -46,11 +48,11 @@ class HelpDesk():
         return prompt
 
     def get_embeddings(self) -> OpenAIEmbeddings:
-        embeddings = OpenAIEmbeddings()
+        embeddings = OpenAIEmbeddings(model=MODEL_TYPE_EMBEDDING)
         return embeddings
 
     def get_llm(self):
-        llm = OpenAI()
+        llm = ChatOpenAI(model=MODEL_TYPE_INFERENCE)
         return llm
 
     def get_retrieval_qa(self):
@@ -86,10 +88,10 @@ class HelpDesk():
             distinct_sources_str = "  \n- ".join(distinct_sources)
 
         if len(distinct_sources) == 1:
-            return f"Voici la source qui pourrait t'être utile :  \n- {distinct_sources_str}"
+            return f"Voici la source qui pourrait vous être utile :  \n- {distinct_sources_str}"
 
         elif len(distinct_sources) > 1:
-            return f"Voici {len(distinct_sources)} sources qui pourraient t'être utiles :  \n- {distinct_sources_str}"
+            return f"Voici {len(distinct_sources)} sources qui pourraient vous être utiles :  \n- {distinct_sources_str}"
 
         else:
-            return "Désolé je n'ai trouvé aucune ressource pour répondre à ta question"
+            return "Désolé je n'ai trouvé aucune ressource pour répondre à votre question"
