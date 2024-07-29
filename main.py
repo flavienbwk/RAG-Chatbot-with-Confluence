@@ -32,7 +32,7 @@ with st.status("Informations d'usage"):
         icon="ℹ️",
     )
     st.warning(
-        "Attention : ce moteur de recherche peut produire des explications inexactes, veuillez vérifier les sources."
+        "Attention : ce moteur de recherche peut produire des explications inexactes (appelées hallucinations), veuillez vérifier les sources."
     )
 
 

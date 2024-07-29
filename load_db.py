@@ -50,8 +50,7 @@ class DataLoader:
             max_pages=1000,
             min_retry_seconds=2,
             max_retry_seconds=10,
-            include_comments=True,
-            # include_attachments=True,
+            include_comments=True
         )
         docs = loader.load()
         print("Number of documents retrieved:", len(docs))
