@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 from help_desk import HelpDesk
 
@@ -9,6 +10,11 @@ def get_model():
     model = HelpDesk(new_db=FORCE_EMBEDDINGS_DB_RELOAD)
     return model
 
+if os.path.exists("logo.png"):
+    brand_logo = "logo.png"
+else:
+    brand_logo = "brand.png"
+st.set_page_config(page_title=f"Base de connaissance {COMPANY_NAME}", page_icon=brand_logo)
 
 model = get_model()
 
@@ -16,7 +22,7 @@ col1, col2 = st.columns([6, 1])
 with col1:
     st.title(f"Base de connaissance {COMPANY_NAME}")
 with col2:
-    st.image("brand.png", width=64, use_column_width=True)
+    st.image(brand_logo, width=64, use_column_width=True)
     st.write("")  # Add empty space to push the image up
 
 
