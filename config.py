@@ -8,6 +8,7 @@ _ = load_dotenv(find_dotenv())
 
 CURRENT_DIR=os.path.dirname(os.path.abspath(__file__))
 
+COMPANY_NAME = os.environ['COMPANY_NAME']
 OPEN_AI_API_KEY = os.environ['OPENAI_API_KEY']
 MODEL_TYPE_INFERENCE = os.environ['MODEL_TYPE_INFERENCE']
 MODEL_TYPE_EMBEDDING = os.environ['MODEL_TYPE_EMBEDDING']
