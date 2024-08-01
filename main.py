@@ -1,6 +1,7 @@
 import os
 import streamlit as st
 from help_desk import HelpDesk
+import time
 
 from config import FORCE_EMBEDDINGS_DB_RELOAD, COMPANY_NAME
 
@@ -10,11 +11,61 @@ def get_model():
     model = HelpDesk(new_db=FORCE_EMBEDDINGS_DB_RELOAD)
     return model
 
-if os.path.exists("logo.png"):
-    brand_logo = "logo.png"
+if os.path.exists("./static/logo.png"):
+    brand_logo = "./static/logo.png"
 else:
-    brand_logo = "brand.png"
+    brand_logo = "./static/brand.png"
+
+# Splash screen
 st.set_page_config(page_title=f"Base de connaissance {COMPANY_NAME}", page_icon=brand_logo)
+splash_placeholder = st.empty()
+with splash_placeholder.container():
+    st.markdown(
+        f"""
+        <style>
+        .splash {{
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #141414;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            animation: fadeOut 1s ease-out 1s forwards;
+            opacity: 1;
+            visibility: visible;
+            transition: opacity 1s, visibility 1s;
+        }}
+        .splash img {{
+            max-width: 200px;
+            margin-bottom: 20px;
+            filter: invert(100%);
+        }}
+        .splash p {{
+            color: white;
+            font-size: 24px;
+            letter-spacing: 4px;
+        }}
+        @keyframes fadeOut {{
+            to {{
+                opacity: 0;
+                visibility: hidden;
+            }}
+        }}
+        </style>
+        <div class="splash">
+            <img src="app/static/logo.png" alt="Logo">
+            <p>EXPERIMENTS</p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    time.sleep(2)
+splash_placeholder.empty()
 
 model = get_model()
 
@@ -48,7 +99,7 @@ if "messages" not in st.session_state:
 
 for msg in st.session_state.messages:
     if msg["role"] != "system":
-        st.chat_message(msg["role"], avatar="confluence.png").write(msg["content"])
+        st.chat_message(msg["role"], avatar="./static/confluence.png").write(msg["content"])
 
 
 if prompt := st.chat_input("Comment puis-je vous aider ?"):
@@ -60,7 +111,7 @@ if prompt := st.chat_input("Comment puis-je vous aider ?"):
     result, sources = model.retrieval_qa_inference(prompt, verbose=False)
 
     # Add answer and sources
-    st.chat_message("assistant", avatar="confluence.png").write(
+    st.chat_message("assistant", avatar="./static/confluence.png").write(
         result + "  \n  \n" + sources
     )
     st.session_state.messages.append(
